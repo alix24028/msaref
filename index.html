@@ -512,9 +512,15 @@ function applyR(){
     if(buys.length){
       const itemMap={};buys.forEach(x=>{itemMap[x.item]=(itemMap[x.item]||0)+x.price});
       const itemSorted=Object.entries(itemMap).sort((a,b)=>b[1]-a[1]);
+      const catMap={};buys.forEach(x=>{const c=x.category||'بدون تصنيف';catMap[c]=(catMap[c]||0)+x.price});
+      const catSorted=Object.entries(catMap).sort((a,b)=>b[1]-a[1]);
       html+=`<h4 style="font-size:14px;color:var(--p1);margin-bottom:6px;">📊 تحليل حسب الصنف</h4>
       <div class="tw"><table><tr><th>الصنف</th><th>الإجمالي</th><th>النسبة</th><th>شريط</th></tr>${
         itemSorted.map(([it,tot])=>`<tr><td>${esc(it)}</td><td>${tot.toFixed(2)}</td><td>${(tot/tBuys*100).toFixed(1)}%</td><td><div style="background:#e0e0e0;border-radius:6px;overflow:hidden;width:100px;"><div style="background:linear-gradient(90deg,var(--p2),var(--s1));width:${tot/tBuys*100}%;height:14px;border-radius:6px;"></div></div></td></tr>`).join('')}
+        <tr style="font-weight:700;background:#e8f5e9;"><td>المجموع</td><td>${tBuys.toFixed(2)}</td><td>100%</td><td></td></tr></table></div>`;
+      html+=`<h4 style="font-size:14px;color:var(--p1);margin:10px 0 6px;">📂 تحليل حسب الفئة</h4>
+      <div class="tw"><table><tr><th>الفئة</th><th>الإجمالي</th><th>النسبة</th><th>شريط</th></tr>${
+        catSorted.map(([ca,tot])=>`<tr><td>${esc(ca)}</td><td>${tot.toFixed(2)}</td><td>${(tot/tBuys*100).toFixed(1)}%</td><td><div style="background:#e0e0e0;border-radius:6px;overflow:hidden;width:100px;"><div style="background:linear-gradient(90deg,var(--s1),var(--d));width:${tot/tBuys*100}%;height:14px;border-radius:6px;"></div></div></td></tr>`).join('')}
         <tr style="font-weight:700;background:#e8f5e9;"><td>المجموع</td><td>${tBuys.toFixed(2)}</td><td>100%</td><td></td></tr></table></div>`;
       html+=`<h4 style="font-size:14px;color:var(--p1);margin:10px 0 6px;">🛒 تفاصيل المشتريات</h4><div class="tw"><table><tr><th>التاريخ</th><th>اليوم</th><th>الصنف</th><th>الفئة</th><th>الكمية</th><th>السعر</th><th>ملاحظات</th></tr>${
         buys.map(x=>`<tr><td style="font-size:11px;color:#888;">${x.createdAt||'—'}</td><td style="font-size:11px;color:#aaa;">${x.dayOfWeek||''}</td><td>${esc(x.item)}</td><td style="color:#666;font-size:11px;">${esc(x.category||'')}</td><td>${x.qty||1}</td><td>${x.price.toFixed(2)}</td><td style="font-size:11px;color:#888;">${esc(x.notes||'')}</td></tr>`).join('')}
@@ -538,6 +544,8 @@ function applyR(){
     });
     const itemMap={};allBuys.forEach(x=>{itemMap[x.item]=(itemMap[x.item]||0)+x.price});
     const itemSorted=Object.entries(itemMap).sort((a,b)=>b[1]-a[1]);
+    const catMap2={};allBuys.forEach(x=>{const c=x.category||'بدون تصنيف';catMap2[c]=(catMap2[c]||0)+x.price});
+    const catSorted2=Object.entries(catMap2).sort((a,b)=>b[1]-a[1]);
     const pSorted=Object.entries(perMap).sort((a,b)=>b[1]-a[1]);
     c.innerHTML=`
       <div class="stat-g">
@@ -549,6 +557,10 @@ function applyR(){
       ${itemSorted.length?`<div class="tw"><table><tr><th>الصنف</th><th>الإجمالي</th><th>النسبة</th><th>شريط</th></tr>${
         itemSorted.map(([it,tot])=>`<tr><td>${esc(it)}</td><td>${tot.toFixed(2)}</td><td>${(tot/tBuys*100).toFixed(1)}%</td><td><div style="background:#e0e0e0;border-radius:6px;overflow:hidden;width:100px;"><div style="background:linear-gradient(90deg,var(--p2),var(--s1));width:${tot/tBuys*100}%;height:14px;border-radius:6px;"></div></div></td></tr>`).join('')}
         <tr style="font-weight:700;background:#e8f5e9;"><td>المجموع</td><td>${tBuys.toFixed(2)}</td><td>100%</td><td></td></tr></table></div>`:'<div style="color:#aaa;font-size:13px;">لا توجد مشتريات</div>'}
+      <h4 style="font-size:14px;color:var(--p1);margin:10px 0 6px;">📂 تحليل حسب الفئة</h4>
+      ${catSorted2.length?`<div class="tw"><table><tr><th>الفئة</th><th>الإجمالي</th><th>النسبة</th><th>شريط</th></tr>${
+        catSorted2.map(([ca,tot])=>`<tr><td>${esc(ca)}</td><td>${tot.toFixed(2)}</td><td>${(tot/tBuys*100).toFixed(1)}%</td><td><div style="background:#e0e0e0;border-radius:6px;overflow:hidden;width:100px;"><div style="background:linear-gradient(90deg,var(--s1),var(--d));width:${tot/tBuys*100}%;height:14px;border-radius:6px;"></div></div></td></tr>`).join('')}
+        <tr style="font-weight:700;background:#e8f5e9;"><td>المجموع</td><td>${tBuys.toFixed(2)}</td><td>100%</td><td></td></tr></table></div>`:'<div style="color:#aaa;font-size:13px;">لا توجد تصنيفات</div>'}
       <h4 style="font-size:14px;color:var(--p1);margin:10px 0 6px;">👤 حسب المشترك</h4>
       ${pSorted.length?pSorted.map(([n,a])=>`<div class="cd" style="display:flex;justify-content:space-between;padding:10px 14px;"><span>${esc(n)}</span><strong>${a.toFixed(2)}</strong></div>`).join(''):'<div style="color:#aaa;font-size:13px;">لا يوجد مشتركين</div>'}
       <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;"><button class="btn btn-sm btn-s" onclick="expRpt()">📥 تصدير</button><button class="btn btn-sm btn-p" onclick="expPdf()">📄 PDF</button></div>`;
@@ -571,6 +583,12 @@ function expRpt(){
     txt+=`\n📊 تحليل حسب الصنف\n${'='.repeat(30)}\n`;
     Object.entries(itemMap).sort((a,b)=>b[1]-a[1]).forEach(([it,tot])=>{
       txt+=`  ${it}: ${tot.toFixed(2)} (${(tot/tAll*100).toFixed(1)}%)\n`;
+    });
+    txt+=`  ${'-'.repeat(20)}\n  الإجمالي: ${tAll.toFixed(2)}\n`;
+    const catMap3={};allBuys.forEach(x=>{const c=x.category||'بدون تصنيف';catMap3[c]=(catMap3[c]||0)+x.price});
+    txt+=`\n📂 تحليل حسب الفئة\n${'='.repeat(30)}\n`;
+    Object.entries(catMap3).sort((a,b)=>b[1]-a[1]).forEach(([ca,tot])=>{
+      txt+=`  ${ca}: ${tot.toFixed(2)} (${(tot/tAll*100).toFixed(1)}%)\n`;
     });
     txt+=`  ${'-'.repeat(20)}\n  الإجمالي: ${tAll.toFixed(2)}\n`;
   }
