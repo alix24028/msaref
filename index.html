@@ -283,7 +283,7 @@ function renderProjectDetail(id){
   const ps=ctrs.length?(tCtrs/ctrs.length):0;
   const today=gds(new Date());
   const itemsList=data.savedItems.map(x=>`<option value="${esc(x)}">`).join('');
-  const catsList=(data.savedCats||[]).map(x=>`<option value="${esc(x)}">`).join('');
+  const catsOptions=data.savedCats&&data.savedCats.length?data.savedCats.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join(''):'';
 
   b.innerHTML=`
     <div style="margin-bottom:12px;">
@@ -300,8 +300,11 @@ function renderProjectDetail(id){
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;align-items:center;">
           <input class="fc" id="p-item-${id}" list="items-list-${id}" placeholder="اسم الصنف" style="flex:2;min-width:100px;">
           <datalist id="items-list-${id}">${itemsList}</datalist>
-          <input class="fc" id="p-cat-${id}" list="cats-list-${id}" placeholder="الفئة" style="flex:1;min-width:80px;">
-          <datalist id="cats-list-${id}">${catsList}</datalist>
+          <select class="fc" id="p-cat-${id}" onchange="onCatChange('${id}')" style="flex:1;min-width:80px;">
+            <option value="">-- اختر الفئة --</option>
+            ${catsOptions}
+            <option value="__add__">➕ إضافة تصنيف جديد</option>
+          </select>
           <button class="btn btn-sm btn-o" onclick="toggleWindow('categories')" title="إدارة التصنيفات" style="padding:12px 10px;">🏷️</button>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;align-items:center;">
@@ -603,6 +606,25 @@ function expPdf(){
   html2pdf().set(opt).from(c).save().then(()=>toast('✅ تم تصدير PDF','s'));
 }
 
+function onCatChange(pid){
+  const sel=document.getElementById('p-cat-'+pid);
+  if(!sel||sel.value!=='__add__')return;
+  sel.value='';
+  const name=prompt('أدخل اسم التصنيف الجديد:');
+  if(!name||!name.trim())return;
+  const n=name.trim();
+  if(data.savedCats.includes(n)){toast('التصنيف موجود مسبقاً','e');return}
+  data.savedCats.push(n);save();refreshCatsSelect(pid);renderCategories();
+  setTimeout(()=>{sel.value=n},50);
+  toast('✅ تم','s');
+}
+function refreshCatsSelect(pid){
+  const sel=document.getElementById('p-cat-'+pid);
+  if(!sel)return;
+  const cur=sel.value;
+  sel.innerHTML='<option value="">-- اختر الفئة --</option>'+(data.savedCats||[]).map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('')+'<option value="__add__">➕ إضافة تصنيف جديد</option>';
+  if(data.savedCats.includes(cur))sel.value=cur;
+}
 // ===== RENDER: CATEGORIES =====
 function renderCategories(){
   const b=document.getElementById('b-categories');if(!b)return;
@@ -627,7 +649,7 @@ function addCategory(){
   save();
   document.getElementById('new-cat-name').value='';
   renderCategories();
-  refreshCatsDatalist();
+  if(currentProject)refreshCatsSelect(currentProject);
   toast('✅ تم','s');
 }
 function delCategory(name){
@@ -635,13 +657,8 @@ function delCategory(name){
   data.savedCats=data.savedCats.filter(c=>c!==name);
   save();
   renderCategories();
-  refreshCatsDatalist();
+  if(currentProject)refreshCatsSelect(currentProject);
   toast('تم الحذف','s');
-}
-function refreshCatsDatalist(){
-  if(!currentProject)return;
-  const dl=document.getElementById('cats-list-'+currentProject);
-  if(dl)dl.innerHTML=(data.savedCats||[]).map(x=>`<option value="${esc(x)}">`).join('');
 }
 
 // ===== RENDER: ARCHIVE =====
