@@ -132,6 +132,7 @@ tr:hover td{background:#f5f5f5}
   .p-grid{grid-template-columns:1fr!important}
   [style*="grid-template-columns: 1fr 1fr"]{grid-template-columns:1fr!important}
   .fc{font-size:14px;padding:10px 12px}
+  textarea.fc{min-height:90px}
   table{font-size:11px}
   th,td{padding:6px 8px}
   .stat-g{grid-template-columns:repeat(2,1fr)}
@@ -240,7 +241,7 @@ function minWin(id){const w=wins[id];if(!w)return;w.classList.add('minimized');c
 function clWin(id){const w=wins[id];if(!w)return;w.style.display='none';w.classList.remove('minimized');const o=order.filter(x=>x!==id&&wins[x].style.display==='flex'&&!wins[x].classList.contains('minimized'));if(o.length)foc(o[o.length-1]);document.querySelectorAll('.tb-btn').forEach(b=>b.classList.remove('active'))}
 function drag(win,id){
   const tb=win.querySelector('.win-t');let drag=false,sx,sy,ox,oy;
-  function st(e){foc(id);drag=true;const r=win.getBoundingClientRect(),p=e.touches?e.touches[0]:e;sx=p.clientX;sy=p.clientY;ox=r.left;oy=r.top;win.style.transition='none';e.preventDefault()}
+  function st(e){foc(id);const t=e.target;if(t.tagName==='BUTTON'||t.closest('.wb'))return;drag=true;const r=win.getBoundingClientRect(),p=e.touches?e.touches[0]:e;sx=p.clientX;sy=p.clientY;ox=r.left;oy=r.top;win.style.transition='none';e.preventDefault()}
   function mv(e){if(!drag)return;const p=e.touches?e.touches[0]:e;let nx=ox+p.clientX-sx,ny=oy+p.clientY-sy;nx=Math.max(-win.offsetWidth*0.2,Math.min(window.innerWidth-win.offsetWidth*0.6,nx));ny=Math.max(0,Math.min(window.innerHeight-80,ny));win.style.left=nx+'px';win.style.top=ny+'px'}
   function en(){drag=false;win.style.transition=''}
   tb.addEventListener('mousedown',st);document.addEventListener('mousemove',mv);document.addEventListener('mouseup',en);tb.addEventListener('touchstart',st,{passive:false});document.addEventListener('touchmove',mv,{passive:false});document.addEventListener('touchend',en);
@@ -310,7 +311,7 @@ function renderProjectDetail(id){
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;align-items:center;">
           <input class="fc" id="p-qty-${id}" type="number" step="0.01" min="0" placeholder="الكمية" value="1" style="flex:0 0 80px;">
           <input class="fc" id="p-price-${id}" type="number" step="0.01" min="0" placeholder="السعر" style="flex:0 0 90px;">
-          <input class="fc" id="p-notes-${id}" placeholder="ملاحظات" style="flex:1;">
+          <textarea class="fc" id="p-notes-${id}" placeholder="ملاحظات" style="flex:1;min-height:70px;" rows="2"></textarea>
           <input type="hidden" id="p-edit-id-${id}" value="">
           <button class="btn btn-p" onclick="addBuy('${id}')" title="إضافة" id="p-add-btn-${id}" style="padding:12px 20px;">➕ إضافة</button>
         </div>
