@@ -160,18 +160,21 @@ tr:hover td{background:#f5f5f5}
   <button class="tb-btn" data-win="categories" onclick="toggleWindow('categories')">
     🏷️ <span>التصنيفات</span>
   </button>
+  <button class="tb-btn" data-win="stores" onclick="toggleWindow('stores')">
+    🏪 <span>المحلات</span>
+  </button>
   <div class="tb-clock" id="clock">00:00:00</div>
 </div>
 <div class="toast-c" id="toast-c"></div>
 <script>
 // ===== DATA =====
 const SK='mssaref_v2';
-function defData(){return{projects:[],savedItems:[],savedCats:[],nextId:1}}
+function defData(){return{projects:[],savedItems:[],savedCats:[],savedStores:[],nextId:1}}
 let data=loadData();
 function loadData(){
   try{
     const r=localStorage.getItem(SK);
-    if(r){const d=JSON.parse(r);if(!d.projects)d.projects=[];if(!d.savedItems)d.savedItems=[];if(!d.savedCats)d.savedCats=[];if(!d.nextId)d.nextId=1;return d}
+    if(r){const d=JSON.parse(r);if(!d.projects)d.projects=[];if(!d.savedItems)d.savedItems=[];if(!d.savedCats)d.savedCats=[];if(!d.savedStores)d.savedStores=[];if(!d.nextId)d.nextId=1;return d}
   }catch(e){}
   return defData();
 }
@@ -195,11 +198,11 @@ const dayNames=['الأحد','الإثنين','الثلاثاء','الأربعا
 
 // ===== WINDOW MANAGER =====
 let wins={},zIdx=100,order=[];
-const DEFS={projects:{title:'المشاريع',ic:'📋',w:900,h:620},add:{title:'مشروع جديد',ic:'➕',w:460,h:340},reports:{title:'التقارير',ic:'📈',w:680,h:560},archive:{title:'الأرشيف',ic:'🗂️',w:680,h:500},categories:{title:'التصنيفات',ic:'🏷️',w:480,h:380}};
+const DEFS={projects:{title:'المشاريع',ic:'📋',w:900,h:620},add:{title:'مشروع جديد',ic:'➕',w:460,h:340},reports:{title:'التقارير',ic:'📈',w:680,h:560},archive:{title:'الأرشيف',ic:'🗂️',w:680,h:500},categories:{title:'التصنيفات',ic:'🏷️',w:480,h:380},stores:{title:'المحلات',ic:'🏪',w:480,h:380}};
 
 function init(){
   const desk=document.getElementById('desktop');
-  const ids=['projects','add','reports','archive','categories'];
+  const ids=['projects','add','reports','archive','categories','stores'];
   ids.forEach((id,i)=>{
     const d=DEFS[id],win=document.createElement('div');
     win.className='window';win.id='win-'+id;
@@ -212,7 +215,7 @@ function init(){
     desk.appendChild(win);wins[id]=win;
     if(id==='projects'){win.style.display='flex';order.push(id);foc(id)}
   });
-  renderProjects();renderAdd();renderReports();renderArchive();renderCategories();
+  renderProjects();renderAdd();renderReports();renderArchive();renderCategories();renderStores();
 }
 function foc(id){
   zIdx++;const w=wins[id];if(!w)return;
@@ -234,6 +237,7 @@ function toggleWindow(id){
     else if(id==='reports')renderReports();
     else if(id==='archive')renderArchive();
     else if(id==='categories')renderCategories();
+    else if(id==='stores')renderStores();
   }
 }
 function minWin(id){const w=wins[id];if(!w)return;w.classList.add('minimized');const o=order.filter(x=>x!==id&&wins[x].style.display==='flex'&&!wins[x].classList.contains('minimized'));if(o.length)foc(o[o.length-1]);document.querySelectorAll('.tb-btn').forEach(b=>b.classList.remove('active'))}
@@ -300,7 +304,12 @@ function renderProjectDetail(id){
             ${catsOptions}
             <option value="__add__">➕ إضافة تصنيف جديد</option>
           </select>
-          <button class="btn btn-sm btn-o" onclick="toggleWindow('categories')" title="إدارة التصنيفات" style="padding:12px 10px;">🏷️</button>
+          <select class="fc" id="p-store-${id}" onchange="onStoreChange('${id}')" style="flex:1;min-width:80px;">
+            <option value="">-- اختر المحل --</option>
+            ${data.savedStores&&data.savedStores.length?data.savedStores.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join(''):''}
+            <option value="__add__">➕ إضافة محل جديد</option>
+          </select>
+          <button class="btn btn-sm btn-o" onclick="toggleWindow('stores')" title="إدارة المحلات" style="padding:12px 10px;">🏪</button>
           <button class="btn btn-sm btn-o" onclick="impRpt()" title="استيراد" style="padding:12px 10px;">📤</button>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;align-items:center;">
@@ -311,8 +320,8 @@ function renderProjectDetail(id){
           <input type="hidden" id="p-edit-id-${id}" value="">
           <button class="btn btn-p" onclick="addBuy('${id}')" title="إضافة" id="p-add-btn-${id}" style="padding:12px 20px;">➕ إضافة</button>
         </div>
-        <div id="p-buys-${id}">${buys.length?`<div class="tw"><table style="font-size:12px;"><tr><th>التاريخ</th><th>اليوم</th><th>الصنف</th><th>الفئة</th><th>العدد</th><th>الإجمالي</th><th>سعر الوحدة</th><th>ملاحظات</th><th></th></tr>${
-          buys.map(x=>`<tr><td style="font-size:11px;color:#888;">${x.createdAt||'—'}</td><td style="font-size:11px;color:#aaa;">${x.dayOfWeek||''}</td><td>${esc(x.item)}</td><td style="color:#666;font-size:11px;">${esc(x.category||'')}</td><td>${x.qty||1}</td><td>${x.price.toFixed(2)}</td><td style="font-weight:600;color:var(--p2);">${(x.price/(x.qty||1)).toFixed(2)}</td><td style="font-size:11px;color:#888;">${esc(x.notes||'')}</td><td><button class="btn btn-sm btn-s" onclick="editBuy('${x.id}','${id}')" style="margin-left:6px;">🖊️</button><button class="btn btn-sm btn-d" onclick="delBuy('${x.id}','${id}')">✕</button></td></tr>`).join('')}
+        <div id="p-buys-${id}">${buys.length?`<div class="tw"><table style="font-size:12px;"><tr><th>التاريخ</th><th>اليوم</th><th>الصنف</th><th>الفئة</th><th>المحل</th><th>العدد</th><th>الإجمالي</th><th>سعر الوحدة</th><th>ملاحظات</th><th></th></tr>${
+          buys.map(x=>`<tr><td style="font-size:11px;color:#888;">${x.createdAt||'—'}</td><td style="font-size:11px;color:#aaa;">${x.dayOfWeek||''}</td><td>${esc(x.item)}</td><td style="color:#666;font-size:11px;">${esc(x.category||'')}</td><td style="color:#666;font-size:11px;">${esc(x.store||'')}</td><td>${x.qty||1}</td><td>${x.price.toFixed(2)}</td><td style="font-weight:600;color:var(--p2);">${(x.price/(x.qty||1)).toFixed(2)}</td><td style="font-size:11px;color:#888;">${esc(x.notes||'')}</td><td><button class="btn btn-sm btn-s" onclick="editBuy('${x.id}','${id}')" style="margin-left:6px;">🖊️</button><button class="btn btn-sm btn-d" onclick="delBuy('${x.id}','${id}')">✕</button></td></tr>`).join('')}
           <tr style="font-weight:700;background:#e8f5e9;"><td colspan="5">المجموع</td><td>${tBuys.toFixed(2)}</td><td></td><td></td><td></td></tr>
         </table></div>`:'<div style="color:#aaa;font-size:13px;padding:10px;text-align:center;">لا توجد مشتريات</div>'}</div>
       </div>
@@ -350,6 +359,7 @@ function addBuy(pid){
   const price=parseFloat(document.getElementById('p-price-'+pid)?.value);
   const notes=document.getElementById('p-notes-'+pid)?.value.trim()||'';
   const category=document.getElementById('p-cat-'+pid)?.value.trim()||'';
+  const store=document.getElementById('p-store-'+pid)?.value.trim()||'';
   if(!item)return toast('أدخل اسم الصنف','e');
   if(!price||price<=0)return toast('أدخل سعر صحيح','e');
   const p=data.projects.find(x=>x.id===pid);
@@ -357,13 +367,14 @@ function addBuy(pid){
   if(!p.purchases)p.purchases=[];
   if(editId){
     const buy=p.purchases.find(x=>x.id===editId);
-    if(buy){buy.item=item;buy.qty=qty;buy.price=price;buy.notes=notes;buy.category=category}
+    if(buy){buy.item=item;buy.qty=qty;buy.price=price;buy.notes=notes;buy.category=category;buy.store=store}
   }else{
     const now=new Date();
-    p.purchases.push({id:gid(),item,qty,price,notes,category,createdAt:fdt(now),dayOfWeek:dayNames[now.getDay()]});
+    p.purchases.push({id:gid(),item,qty,price,notes,category,store,createdAt:fdt(now),dayOfWeek:dayNames[now.getDay()]});
   }
   if(!data.savedItems.includes(item)){data.savedItems.push(item)}
   if(category&&!data.savedCats.includes(category)){data.savedCats.push(category)}
+  if(store&&!data.savedStores.includes(store)){data.savedStores.push(store)}
   save();
   document.getElementById('p-item-'+pid).value='';
   document.getElementById('p-qty-'+pid).value='1';
@@ -371,6 +382,7 @@ function addBuy(pid){
   document.getElementById('p-notes-'+pid).value='';
   document.getElementById('p-unit-'+pid).value='';
   document.getElementById('p-cat-'+pid).value='';
+  document.getElementById('p-store-'+pid).value='';
   document.getElementById('p-edit-id-'+pid).value='';
   const btn=document.getElementById('p-add-btn-'+pid);
   if(btn){btn.textContent='➕ إضافة';btn.className='btn btn-p';btn.style.padding='12px 20px'}
@@ -385,6 +397,7 @@ function editBuy(id,pid){
   if(!buy)return;
   document.getElementById('p-item-'+pid).value=buy.item;
   document.getElementById('p-cat-'+pid).value=buy.category||'';
+  document.getElementById('p-store-'+pid).value=buy.store||'';
   document.getElementById('p-qty-'+pid).value=buy.qty||1;
   document.getElementById('p-price-'+pid).value=buy.price;
   document.getElementById('p-notes-'+pid).value=buy.notes||'';
@@ -503,9 +516,9 @@ function applyR(){
       <div class="tw"><table><tr><th>الفئة</th><th>الإجمالي</th><th>النسبة</th><th>شريط</th></tr>${
         catSorted.map(([ca,tot])=>`<tr><td>${esc(ca)}</td><td>${tot.toFixed(2)}</td><td>${(tot/tBuys*100).toFixed(1)}%</td><td><div style="background:#e0e0e0;border-radius:6px;overflow:hidden;width:100px;"><div style="background:linear-gradient(90deg,var(--s1),var(--d));width:${tot/tBuys*100}%;height:14px;border-radius:6px;"></div></div></td></tr>`).join('')}
         <tr style="font-weight:700;background:#e8f5e9;"><td>المجموع</td><td>${tBuys.toFixed(2)}</td><td>100%</td><td></td></tr></table></div>`;
-      html+=`<h4 style="font-size:14px;color:var(--p1);margin:10px 0 6px;">🛒 تفاصيل المشتريات</h4><div class="tw"><table><tr><th>التاريخ</th><th>اليوم</th><th>الصنف</th><th>الفئة</th><th>العدد</th><th>الإجمالي</th><th>سعر الوحدة</th><th>ملاحظات</th></tr>${
-        buys.map(x=>`<tr><td style="font-size:11px;color:#888;">${x.createdAt||'—'}</td><td style="font-size:11px;color:#aaa;">${x.dayOfWeek||''}</td><td>${esc(x.item)}</td><td style="color:#666;font-size:11px;">${esc(x.category||'')}</td><td>${x.qty||1}</td><td>${x.price.toFixed(2)}</td><td style="font-weight:600;color:var(--p2);">${(x.price/(x.qty||1)).toFixed(2)}</td><td style="font-size:11px;color:#888;">${esc(x.notes||'')}</td></tr>`).join('')}
-        <tr style="font-weight:700;background:#e8f5e9;"><td colspan="5">المجموع</td><td>${tBuys.toFixed(2)}</td><td></td><td></td></tr></table></div>`;
+      html+=`<h4 style="font-size:14px;color:var(--p1);margin:10px 0 6px;">🛒 تفاصيل المشتريات</h4><div class="tw"><table><tr><th>التاريخ</th><th>اليوم</th><th>الصنف</th><th>الفئة</th><th>المحل</th><th>العدد</th><th>الإجمالي</th><th>سعر الوحدة</th><th>ملاحظات</th></tr>${
+        buys.map(x=>`<tr><td style="font-size:11px;color:#888;">${x.createdAt||'—'}</td><td style="font-size:11px;color:#aaa;">${x.dayOfWeek||''}</td><td>${esc(x.item)}</td><td style="color:#666;font-size:11px;">${esc(x.category||'')}</td><td style="color:#666;font-size:11px;">${esc(x.store||'')}</td><td>${x.qty||1}</td><td>${x.price.toFixed(2)}</td><td style="font-weight:600;color:var(--p2);">${(x.price/(x.qty||1)).toFixed(2)}</td><td style="font-size:11px;color:#888;">${esc(x.notes||'')}</td></tr>`).join('')}
+        <tr style="font-weight:700;background:#e8f5e9;"><td colspan="6">المجموع</td><td>${tBuys.toFixed(2)}</td><td></td><td></td></tr></table></div>`;
     }
     html+=`<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;"><button class="btn btn-sm btn-s" onclick="expRpt()">📥 تصدير</button><button class="btn btn-sm btn-p" onclick="expPdf()">📄 PDF</button><button class="btn btn-sm btn-o" onclick="impRpt()">📤 استيراد</button></div>`;
     c.innerHTML=html;
@@ -545,7 +558,7 @@ function expRpt(){
   ps.forEach(p=>{
     const b=(p.purchases||[]).reduce((s,x)=>s+x.price,0);
     txt+=`📌 ${p.name} (${p.createdAt||''})\n   المشتريات: ${b.toFixed(2)}\n`;
-    (p.purchases||[]).forEach(x=>{txt+=`   - ${x.item}×${x.qty||1}: ${x.price.toFixed(2)} (${(x.price/(x.qty||1)).toFixed(2)}/وحدة) ${x.category||'—'} ${x.createdAt||''}\n`;allBuys.push(x)});
+    (p.purchases||[]).forEach(x=>{txt+=`   - ${x.item}×${x.qty||1}: ${x.price.toFixed(2)} (${(x.price/(x.qty||1)).toFixed(2)}/وحدة) @${x.store||'—'} ${x.category||'—'} ${x.createdAt||''}\n`;allBuys.push(x)});
     txt+=`   ${'-'.repeat(30)}\n`;
   });
   const tAll=allBuys.reduce((s,x)=>s+x.price,0);
@@ -564,7 +577,7 @@ function expRpt(){
     txt+=`  ${'-'.repeat(20)}\n  الإجمالي: ${tAll.toFixed(2)}\n`;
   }
   // JSON data block for import (full project structure)
-  const projData=ps.map(p=>({name:p.name,createdAt:p.createdAt,peopleCount:p.peopleCount||1,purchases:(p.purchases||[]).map(x=>({item:x.item,qty:x.qty,price:x.price,notes:x.notes,category:x.category,createdAt:x.createdAt,dayOfWeek:x.dayOfWeek}))}));
+  const projData=ps.map(p=>({name:p.name,createdAt:p.createdAt,peopleCount:p.peopleCount||1,purchases:(p.purchases||[]).map(x=>({item:x.item,qty:x.qty,price:x.price,notes:x.notes,category:x.category,store:x.store,createdAt:x.createdAt,dayOfWeek:x.dayOfWeek}))}));
   txt+=`\n\n========== JSON DATA ==========\n${JSON.stringify(projData)}\n========== END ==========`;
   const blob=new Blob([txt],{type:'text/plain;charset=utf-8'}),url=URL.createObjectURL(blob);
   const a=document.createElement('a');a.href=url;a.download='تقرير_'+gds(new Date())+'.txt';a.click();URL.revokeObjectURL(url);
@@ -595,9 +608,10 @@ function impRpt(){
         }
         pr.purchases.forEach(x=>{
           if(!x.item||!x.price)return;
-          p.purchases.push({id:gid(),item:x.item,qty:x.qty||1,price:x.price,notes:x.notes||'',category:x.category||'',createdAt:x.createdAt||fdt(new Date()),dayOfWeek:x.dayOfWeek||dayNames[new Date().getDay()]});
+          p.purchases.push({id:gid(),item:x.item,qty:x.qty||1,price:x.price,notes:x.notes||'',category:x.category||'',store:x.store||'',createdAt:x.createdAt||fdt(new Date()),dayOfWeek:x.dayOfWeek||dayNames[new Date().getDay()]});
           if(!data.savedItems.includes(x.item))data.savedItems.push(x.item);
           if(x.category&&!data.savedCats.includes(x.category))data.savedCats.push(x.category);
+          if(x.store&&!data.savedStores.includes(x.store))data.savedStores.push(x.store);
           added++;
         });
       });
@@ -621,9 +635,10 @@ function impRpt(){
     let added=0;
     jsonData.forEach(x=>{
       if(!x.item||!x.price)return;
-      p.purchases.push({id:gid(),item:x.item,qty:x.qty||1,price:x.price,notes:x.notes||'',category:x.category||'',createdAt:x.createdAt||fdt(new Date()),dayOfWeek:x.dayOfWeek||dayNames[new Date().getDay()]});
+      p.purchases.push({id:gid(),item:x.item,qty:x.qty||1,price:x.price,notes:x.notes||'',category:x.category||'',store:x.store||'',createdAt:x.createdAt||fdt(new Date()),dayOfWeek:x.dayOfWeek||dayNames[new Date().getDay()]});
       if(!data.savedItems.includes(x.item))data.savedItems.push(x.item);
       if(x.category&&!data.savedCats.includes(x.category))data.savedCats.push(x.category);
+      if(x.store&&!data.savedStores.includes(x.store))data.savedStores.push(x.store);
       added++;
     });
     save();renderProjectDetail(pid);renderProjects();renderReports();
@@ -691,6 +706,60 @@ function delCategory(name){
   renderCategories();
   if(currentProject)refreshCatsSelect(currentProject);
   toast('تم الحذف','s');
+}
+
+// ===== RENDER: STORES =====
+function renderStores(){
+  const b=document.getElementById('b-stores');if(!b)return;
+  const stores=data.savedStores||[];
+  b.innerHTML=`
+    <div style="display:flex;gap:8px;margin-bottom:12px;">
+      <input class="fc" id="new-store-name" placeholder="اسم المحل الجديد" style="flex:1;">
+      <button class="btn btn-p" onclick="addStore()">➕ إضافة</button>
+    </div>
+    <div id="stores-list">
+      ${stores.length?stores.map(s=>`<div class="cd" style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;">
+        <span>🏪 ${esc(s)}</span>
+        <button class="btn btn-sm btn-d" onclick="delStore('${esc(s)}')">✕</button>
+      </div>`).join(''):'<div style="color:#aaa;font-size:13px;padding:10px;text-align:center;">لا توجد محلات</div>'}
+    </div>`;
+}
+function addStore(){
+  const name=document.getElementById('new-store-name')?.value.trim();
+  if(!name)return toast('أدخل اسم المحل','e');
+  if(data.savedStores.includes(name))return toast('المحل موجود مسبقاً','e');
+  data.savedStores.push(name);
+  save();
+  document.getElementById('new-store-name').value='';
+  renderStores();
+  if(currentProject)refreshStoresSelect(currentProject);
+  toast('✅ تم','s');
+}
+function delStore(name){
+  if(!confirm('حذف المحل "'+name+'"؟'))return;
+  data.savedStores=data.savedStores.filter(s=>s!==name);
+  save();
+  renderStores();
+  if(currentProject)refreshStoresSelect(currentProject);
+  toast('تم الحذف','s');
+}
+function refreshStoresSelect(pid){
+  const sel=document.getElementById('p-store-'+pid);if(!sel)return;
+  const cur=sel.value;
+  sel.innerHTML='<option value="">-- اختر المحل --</option>'+(data.savedStores||[]).map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('')+'<option value="__add__">➕ إضافة محل جديد</option>';
+  if(data.savedStores.includes(cur))sel.value=cur;
+}
+function onStoreChange(pid){
+  const sel=document.getElementById('p-store-'+pid);
+  if(!sel||sel.value!=='__add__')return;
+  sel.value='';
+  const name=prompt('أدخل اسم المحل الجديد:');
+  if(!name||!name.trim())return;
+  const n=name.trim();
+  if(data.savedStores.includes(n)){toast('المحل موجود مسبقاً','e');return}
+  data.savedStores.push(n);save();refreshStoresSelect(pid);renderStores();
+  setTimeout(()=>{sel.value=n},50);
+  toast('✅ تم','s');
 }
 
 // ===== RENDER: ARCHIVE =====
