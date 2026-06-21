@@ -163,6 +163,9 @@ tr:hover td{background:#f5f5f5}
   <button class="tb-btn" data-win="stores" onclick="toggleWindow('stores')">
     🏪 <span>المحلات</span>
   </button>
+  <button class="tb-btn" onclick="impRpt()">
+    📂 <span>استيراد</span>
+  </button>
   <div class="tb-clock" id="clock">00:00:00</div>
 </div>
 <div class="toast-c" id="toast-c"></div>
@@ -176,9 +179,27 @@ function loadData(){
     const r=localStorage.getItem(SK);
     if(r){const d=JSON.parse(r);if(!d.projects)d.projects=[];if(!d.savedItems)d.savedItems=[];if(!d.savedCats)d.savedCats=[];if(!d.savedStores)d.savedStores=[];if(!d.nextId)d.nextId=1;return d}
   }catch(e){}
+  // No localStorage data → prompt restore from backup
+  setTimeout(()=>{
+    if(confirm('⚠️ لا توجد بيانات محفوظة في المتصفح.\nهل تريد استيراد نسخة احتياطية من ملف؟'))impRpt();
+  },500);
   return defData();
 }
-function save(){localStorage.setItem(SK,JSON.stringify(data))}
+function save(){
+  localStorage.setItem(SK,JSON.stringify(data));
+  debounceBackup();
+}
+let _bTimer=null;
+function debounceBackup(){
+  if(_bTimer)clearTimeout(_bTimer);
+  _bTimer=setTimeout(()=>{
+    const blob=new Blob([JSON.stringify(data)],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;a.download='msaref_backup_'+gds(new Date())+'.json';
+    a.click();URL.revokeObjectURL(url);
+  },8000);
+}
 
 // ===== TOAST =====
 function toast(m,t,d){
