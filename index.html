@@ -110,7 +110,8 @@ tr:hover td{background:#f5f5f5}
 }
 .stat-c .nm{font-size:28px;font-weight:900}
 .stat-c .lb{font-size:12px;opacity:0.85;margin-top:4px}
-.stat-c.g{background:linear-gradient(135deg,#c8a45c,#e8d5a0);color:#1a3c34}
+  .stat-c.g{background:linear-gradient(135deg,#c8a45c,#e8d5a0);color:#1a3c34}
+  .stat-c.o{background:linear-gradient(135deg,#ff9800,#ffcc80);color:#3e2723}
 .flt{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:flex-end}
 .flt .fg{margin-bottom:0;min-width:120px;flex:1}
 .p-list{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
@@ -129,8 +130,6 @@ tr:hover td{background:#f5f5f5}
   .tb-clock{font-size:11px}
   #taskbar{overflow-x:auto;gap:4px;padding:0 8px;flex-wrap:nowrap}
   .tb-btn{flex-shrink:0}
-  .p-grid{grid-template-columns:1fr!important}
-  [style*="grid-template-columns: 1fr 1fr"]{grid-template-columns:1fr!important}
   .fc{font-size:14px;padding:10px 12px}
   textarea.fc{min-height:90px}
   table{font-size:11px}
@@ -259,13 +258,11 @@ function renderProjects(){
   b.innerHTML='<div style="display:flex;flex-direction:column;gap:10px;">'+
   ps.map(p=>{
     const buys=(p.purchases||[]).reduce((s,x)=>s+x.price,0);
-    const ctrs=(p.contributors||[]).reduce((s,x)=>s+x.amount,0);
     return `<div class="cd" style="cursor:pointer;transition:0.2s;border-right:4px solid var(--p2);" onclick="openProject('${p.id}')">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
         <div><div class="ct">${esc(p.name)}</div><div class="cm">⏰ ${p.createdAt}</div></div>
         <div style="display:flex;align-items:center;gap:12px;">
           <div style="text-align:left;"><div class="ca">${buys.toFixed(2)}</div><div class="cm">مشتريات</div></div>
-          <div style="text-align:left;"><div class="ca">${ctrs.toFixed(2)}</div><div class="cm">مدفوع</div></div>
           <span style="font-size:18px;color:var(--p2);">◀</span>
         </div>
       </div>
@@ -278,10 +275,8 @@ function renderProjectDetail(id){
   if(!p){currentProject=null;renderProjects();return}
   const b=document.getElementById('b-projects');if(!b)return;
   currentProject=id;
-  const buys=p.purchases||[],ctrs=p.contributors||[];
+  const buys=p.purchases||[];
   const tBuys=buys.reduce((s,x)=>s+x.price,0);
-  const tCtrs=ctrs.reduce((s,x)=>s+x.amount,0);
-  const ps=ctrs.length?(tCtrs/ctrs.length):0;
   const today=gds(new Date());
   const itemsList=data.savedItems.map(x=>`<option value="${esc(x)}">`).join('');
   const catsOptions=data.savedCats&&data.savedCats.length?data.savedCats.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join(''):'';
@@ -293,9 +288,8 @@ function renderProjectDetail(id){
       <button class="btn btn-sm btn-d" style="float:left;" onclick="deleteProject('${p.id}')">🗑️ حذف</button>
     </div>
 
-    <div class="p-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+    <div class="p-grid" style="display:flex;flex-direction:column;gap:16px;">
 
-      <!-- ===== لوحة المشتريات ===== -->
       <div style="background:linear-gradient(135deg,#f8f9fa,#fff);border-radius:14px;padding:16px;border:2px solid #e0e0e0;box-shadow:0 2px 10px rgba(0,0,0,0.05);">
         <h4 style="font-size:15px;color:var(--p1);margin-bottom:10px;border-bottom:2px solid var(--p2);padding-bottom:6px;">🛒 لوحة المشتريات</h4>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;align-items:center;">
@@ -307,41 +301,29 @@ function renderProjectDetail(id){
             <option value="__add__">➕ إضافة تصنيف جديد</option>
           </select>
           <button class="btn btn-sm btn-o" onclick="toggleWindow('categories')" title="إدارة التصنيفات" style="padding:12px 10px;">🏷️</button>
+          <button class="btn btn-sm btn-o" onclick="impRpt()" title="استيراد" style="padding:12px 10px;">📤</button>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;align-items:center;">
-          <input class="fc" id="p-qty-${id}" type="number" step="0.01" min="0" placeholder="الكمية" value="1" style="flex:0 0 80px;">
-          <input class="fc" id="p-price-${id}" type="number" step="0.01" min="0" placeholder="السعر" style="flex:0 0 90px;">
+          <input class="fc" id="p-qty-${id}" type="number" step="0.01" min="0" placeholder="العدد (حبة/شدة)" value="1" style="flex:0 0 100px;" oninput="calcUnit('${id}')">
+          <input class="fc" id="p-price-${id}" type="number" step="0.01" min="0" placeholder="السعر الإجمالي" style="flex:0 0 110px;" oninput="calcUnit('${id}')">
+          <input class="fc" id="p-unit-${id}" type="text" placeholder="سعر الوحدة" readonly style="flex:0 0 90px;background:#e8f5e9;font-weight:700;text-align:center;">
           <textarea class="fc" id="p-notes-${id}" placeholder="ملاحظات" style="flex:1;min-height:70px;" rows="2"></textarea>
           <input type="hidden" id="p-edit-id-${id}" value="">
           <button class="btn btn-p" onclick="addBuy('${id}')" title="إضافة" id="p-add-btn-${id}" style="padding:12px 20px;">➕ إضافة</button>
         </div>
-        <div id="p-buys-${id}">${buys.length?`<div class="tw"><table style="font-size:12px;"><tr><th>التاريخ</th><th>اليوم</th><th>الصنف</th><th>الفئة</th><th>الكمية</th><th>السعر</th><th>ملاحظات</th><th></th></tr>${
-          buys.map(x=>`<tr><td style="font-size:11px;color:#888;">${x.createdAt||'—'}</td><td style="font-size:11px;color:#aaa;">${x.dayOfWeek||''}</td><td>${esc(x.item)}</td><td style="color:#666;font-size:11px;">${esc(x.category||'')}</td><td>${x.qty||1}</td><td>${x.price.toFixed(2)}</td><td style="font-size:11px;color:#888;">${esc(x.notes||'')}</td><td><button class="btn btn-sm btn-s" onclick="editBuy('${x.id}','${id}')">🖊️</button><button class="btn btn-sm btn-d" onclick="delBuy('${x.id}','${id}')">✕</button></td></tr>`).join('')}
-          <tr style="font-weight:700;background:#e8f5e9;"><td colspan="5">المجموع</td><td>${tBuys.toFixed(2)}</td><td></td><td></td></tr>
+        <div id="p-buys-${id}">${buys.length?`<div class="tw"><table style="font-size:12px;"><tr><th>التاريخ</th><th>اليوم</th><th>الصنف</th><th>الفئة</th><th>العدد</th><th>الإجمالي</th><th>سعر الوحدة</th><th>ملاحظات</th><th></th></tr>${
+          buys.map(x=>`<tr><td style="font-size:11px;color:#888;">${x.createdAt||'—'}</td><td style="font-size:11px;color:#aaa;">${x.dayOfWeek||''}</td><td>${esc(x.item)}</td><td style="color:#666;font-size:11px;">${esc(x.category||'')}</td><td>${x.qty||1}</td><td>${x.price.toFixed(2)}</td><td style="font-weight:600;color:var(--p2);">${(x.price/(x.qty||1)).toFixed(2)}</td><td style="font-size:11px;color:#888;">${esc(x.notes||'')}</td><td><button class="btn btn-sm btn-s" onclick="editBuy('${x.id}','${id}')" style="margin-left:6px;">🖊️</button><button class="btn btn-sm btn-d" onclick="delBuy('${x.id}','${id}')">✕</button></td></tr>`).join('')}
+          <tr style="font-weight:700;background:#e8f5e9;"><td colspan="5">المجموع</td><td>${tBuys.toFixed(2)}</td><td></td><td></td><td></td></tr>
         </table></div>`:'<div style="color:#aaa;font-size:13px;padding:10px;text-align:center;">لا توجد مشتريات</div>'}</div>
       </div>
 
-      <!-- ===== لوحة المشتركين ===== -->
-      <div style="background:linear-gradient(135deg,#f8f9fa,#fff);border-radius:14px;padding:16px;border:2px solid #e0e0e0;box-shadow:0 2px 10px rgba(0,0,0,0.05);">
-        <h4 style="font-size:15px;color:var(--p1);margin-bottom:10px;border-bottom:2px solid var(--s1);padding-bottom:6px;">👤 لوحة المشتركين</h4>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;align-items:center;">
-          <input class="fc" id="c-name-${id}" placeholder="اسم المشترك" style="flex:1;min-width:80px;">
-          <input class="fc" id="c-amount-${id}" type="number" step="0.01" min="0" placeholder="المبلغ" style="flex:0 0 100px;">
-          <button class="btn btn-p" onclick="addCtr('${id}')" title="إضافة" style="padding:12px 20px;">➕ إضافة</button>
-        </div>
-        <div id="p-ctrs-${id}">${ctrs.length?`<div class="tw"><table style="font-size:12px;"><tr><th>الاسم</th><th>المبلغ</th><th>التاريخ</th><th>اليوم</th><th></th></tr>${
-          ctrs.map(x=>`<tr><td>${esc(x.name)}</td><td>${x.amount.toFixed(2)}</td><td style="font-size:11px;color:#888;">${x.createdAt||'—'}</td><td style="font-size:11px;color:#aaa;">${x.dayOfWeek||''}</td><td><button class="btn btn-sm btn-d" onclick="delCtr('${x.id}','${id}')">✕</button></td></tr>`).join('')}
-          <tr style="font-weight:700;background:#e8f5e9;"><td>المجموع</td><td>${tCtrs.toFixed(2)}</td><td></td><td></td><td></td></tr>
-        </table></div>`:'<div style="color:#aaa;font-size:13px;padding:10px;text-align:center;">لا يوجد مشتركين</div>'}</div>
-      </div>
     </div>
 
-    <!-- ملخص المشروع -->
     <div style="background:linear-gradient(135deg,#e8f5e9,#f1f8e9);border-radius:12px;padding:14px;margin-top:14px;display:flex;justify-content:space-around;flex-wrap:wrap;gap:10px;">
       <span>💰 <strong>قيمة المشتريات:</strong> ${tBuys.toFixed(2)}</span>
-      <span>✅ <strong>المدفوع:</strong> ${tCtrs.toFixed(2)}</span>
-      <span>👤 <strong>عدد المشتركين:</strong> ${ctrs.length}</span>
-      <span>📊 <strong>نصيب الفرد:</strong> ${ps.toFixed(2)}</span>
+      <span>📦 <strong>عدد الأصناف:</strong> ${buys.length}</span>
+      <span>👤 <strong>عدد الأشخاص:</strong> <input type="number" min="1" value="${p.peopleCount||1}" onchange="setPeople('${id}',this.value)" style="width:50px;padding:2px 4px;border:1px solid #ccc;border-radius:4px;text-align:center;font-size:13px;"></span>
+      <span>📊 <strong>نصيب الفرد:</strong> ${(tBuys/(p.peopleCount||1)).toFixed(2)}</span>
     </div>
   `;
 }
@@ -387,6 +369,7 @@ function addBuy(pid){
   document.getElementById('p-qty-'+pid).value='1';
   document.getElementById('p-price-'+pid).value='';
   document.getElementById('p-notes-'+pid).value='';
+  document.getElementById('p-unit-'+pid).value='';
   document.getElementById('p-cat-'+pid).value='';
   document.getElementById('p-edit-id-'+pid).value='';
   const btn=document.getElementById('p-add-btn-'+pid);
@@ -406,6 +389,7 @@ function editBuy(id,pid){
   document.getElementById('p-price-'+pid).value=buy.price;
   document.getElementById('p-notes-'+pid).value=buy.notes||'';
   document.getElementById('p-edit-id-'+pid).value=id;
+  calcUnit(pid);
   const btn=document.getElementById('p-add-btn-'+pid);
   if(btn){btn.textContent='💾 حفظ';btn.className='btn btn-s';btn.style.padding='12px 20px'}
   document.getElementById('p-item-'+pid).focus();
@@ -413,34 +397,26 @@ function editBuy(id,pid){
 function delBuy(id,pid){
   const p=data.projects.find(x=>x.id===pid);
   if(!p)return;
+  if(!confirm('⚠️ هل أنت متأكد من حذف هذه المشتريات؟'))return;
   p.purchases=(p.purchases||[]).filter(x=>x.id!==id);
   save();renderProjectDetail(pid);renderProjects();renderReports();
 }
 
-// ===== CONTRIBUTORS (inline) =====
-function addCtr(pid){
-  const name=document.getElementById('c-name-'+pid)?.value.trim();
-  const amount=parseFloat(document.getElementById('c-amount-'+pid)?.value);
-  if(!name)return toast('أدخل اسم المشترك','e');
-  if(!amount||amount<=0)return toast('أدخل مبلغ صحيح','e');
+// ===== PEOPLE COUNT =====
+function setPeople(pid,n){
   const p=data.projects.find(x=>x.id===pid);
   if(!p)return;
-  if(!p.contributors)p.contributors=[];
-  if(p.contributors.find(x=>x.name===name))return toast('المشترك موجود مسبقاً','e');
-  const now=new Date();
-  p.contributors.push({id:gid(),name,amount,createdAt:fdt(now),dayOfWeek:dayNames[now.getDay()]});
-  save();
-  document.getElementById('c-name-'+pid).value='';
-  document.getElementById('c-amount-'+pid).value='';
-  renderProjectDetail(pid);
-  renderProjects();renderReports();
-  toast('✅ تم','s');
+  const v=parseInt(n)||1;
+  p.peopleCount=v<1?1:v;
+  save();renderReports();renderProjectDetail(pid);
 }
-function delCtr(id,pid){
-  const p=data.projects.find(x=>x.id===pid);
-  if(!p)return;
-  p.contributors=(p.contributors||[]).filter(x=>x.id!==id);
-  save();renderProjectDetail(pid);renderProjects();renderReports();
+
+// ===== CALCULATE UNIT PRICE =====
+function calcUnit(pid){
+  const qty=parseFloat(document.getElementById('p-qty-'+pid)?.value)||0;
+  const price=parseFloat(document.getElementById('p-price-'+pid)?.value)||0;
+  const unit=qty?price/qty:0;
+  document.getElementById('p-unit-'+pid).value=unit.toFixed(2);
 }
 
 // ===== RENDER: ADD PROJECT =====
@@ -462,7 +438,7 @@ function createProject(e){
   const name=document.getElementById('new-p-name').value.trim();
   if(!name)return toast('أدخل اسم المشروع','e');
   if(data.projects.find(p=>p.name===name))return toast('اسم المشروع موجود مسبقاً','e');
-  data.projects.push({id:gid(),name,createdAt:fdt(new Date()),archived:false,purchases:[],contributors:[]});
+  data.projects.push({id:gid(),name,createdAt:fdt(new Date()),archived:false,purchases:[],peopleCount:1});
   save();
   document.getElementById('new-p-name').value='';
   toast('✅ تم إنشاء المشروع','s');
@@ -506,12 +482,13 @@ function applyR(){
   if(!ps.length){c.innerHTML=`<div class="empty"><div class="ei">📊</div><p>لا توجد نتائج</p></div>`;return}
   const sel=document.getElementById('r-project')?.value;
   if(sel&&ps.length===1){
-    const p=ps[0];const buys=p.purchases||[],ctrs=p.contributors||[];
-    const tBuys=buys.reduce((s,x)=>s+x.price,0),tCtrs=ctrs.reduce((s,x)=>s+x.amount,0);
+    const p=ps[0];const buys=p.purchases||[];
+    const tBuys=buys.reduce((s,x)=>s+x.price,0);
     let html=`<div class="stat-g">
       <div class="stat-c"><div class="nm">${buys.length}</div><div class="lb">المشتريات</div></div>
       <div class="stat-c g"><div class="nm">${tBuys.toFixed(2)}</div><div class="lb">قيمة المشتريات</div></div>
-      <div class="stat-c"><div class="nm">${tCtrs.toFixed(2)}</div><div class="lb">المدفوع</div></div>
+      <div class="stat-c"><div class="nm">${p.peopleCount||1}</div><div class="lb">الأشخاص</div></div>
+      <div class="stat-c o"><div class="nm">${(tBuys/(p.peopleCount||1)).toFixed(2)}</div><div class="lb">نصيب الفرد</div></div>
     </div>`;
     if(buys.length){
       const itemMap={};buys.forEach(x=>{itemMap[x.item]=(itemMap[x.item]||0)+x.price});
@@ -526,36 +503,28 @@ function applyR(){
       <div class="tw"><table><tr><th>الفئة</th><th>الإجمالي</th><th>النسبة</th><th>شريط</th></tr>${
         catSorted.map(([ca,tot])=>`<tr><td>${esc(ca)}</td><td>${tot.toFixed(2)}</td><td>${(tot/tBuys*100).toFixed(1)}%</td><td><div style="background:#e0e0e0;border-radius:6px;overflow:hidden;width:100px;"><div style="background:linear-gradient(90deg,var(--s1),var(--d));width:${tot/tBuys*100}%;height:14px;border-radius:6px;"></div></div></td></tr>`).join('')}
         <tr style="font-weight:700;background:#e8f5e9;"><td>المجموع</td><td>${tBuys.toFixed(2)}</td><td>100%</td><td></td></tr></table></div>`;
-      html+=`<h4 style="font-size:14px;color:var(--p1);margin:10px 0 6px;">🛒 تفاصيل المشتريات</h4><div class="tw"><table><tr><th>التاريخ</th><th>اليوم</th><th>الصنف</th><th>الفئة</th><th>الكمية</th><th>السعر</th><th>ملاحظات</th></tr>${
-        buys.map(x=>`<tr><td style="font-size:11px;color:#888;">${x.createdAt||'—'}</td><td style="font-size:11px;color:#aaa;">${x.dayOfWeek||''}</td><td>${esc(x.item)}</td><td style="color:#666;font-size:11px;">${esc(x.category||'')}</td><td>${x.qty||1}</td><td>${x.price.toFixed(2)}</td><td style="font-size:11px;color:#888;">${esc(x.notes||'')}</td></tr>`).join('')}
-        <tr style="font-weight:700;background:#e8f5e9;"><td colspan="5">المجموع</td><td>${tBuys.toFixed(2)}</td><td></td></tr></table></div>`;
+      html+=`<h4 style="font-size:14px;color:var(--p1);margin:10px 0 6px;">🛒 تفاصيل المشتريات</h4><div class="tw"><table><tr><th>التاريخ</th><th>اليوم</th><th>الصنف</th><th>الفئة</th><th>العدد</th><th>الإجمالي</th><th>سعر الوحدة</th><th>ملاحظات</th></tr>${
+        buys.map(x=>`<tr><td style="font-size:11px;color:#888;">${x.createdAt||'—'}</td><td style="font-size:11px;color:#aaa;">${x.dayOfWeek||''}</td><td>${esc(x.item)}</td><td style="color:#666;font-size:11px;">${esc(x.category||'')}</td><td>${x.qty||1}</td><td>${x.price.toFixed(2)}</td><td style="font-weight:600;color:var(--p2);">${(x.price/(x.qty||1)).toFixed(2)}</td><td style="font-size:11px;color:#888;">${esc(x.notes||'')}</td></tr>`).join('')}
+        <tr style="font-weight:700;background:#e8f5e9;"><td colspan="5">المجموع</td><td>${tBuys.toFixed(2)}</td><td></td><td></td></tr></table></div>`;
     }
-    if(ctrs.length){
-      html+=`<h4 style="font-size:14px;color:var(--p1);margin:10px 0 6px;">👤 المشتركين</h4><div class="tw"><table><tr><th>الاسم</th><th>المبلغ</th><th>التاريخ</th></tr>${
-        ctrs.map(x=>`<tr><td>${esc(x.name)}</td><td>${x.amount.toFixed(2)}</td><td>${x.date||'—'}</td></tr>`).join('')}
-        <tr style="font-weight:700;background:#e8f5e9;"><td>المجموع</td><td>${tCtrs.toFixed(2)}</td><td></td></tr></table></div>`;
-    }
-    html+=`<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;"><button class="btn btn-sm btn-s" onclick="expRpt()">📥 تصدير</button><button class="btn btn-sm btn-p" onclick="expPdf()">📄 PDF</button></div>`;
+    html+=`<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;"><button class="btn btn-sm btn-s" onclick="expRpt()">📥 تصدير</button><button class="btn btn-sm btn-p" onclick="expPdf()">📄 PDF</button><button class="btn btn-sm btn-o" onclick="impRpt()">📤 استيراد</button></div>`;
     c.innerHTML=html;
   }else{
-    let tBuys=0,tCtrs=0,tProj=0;
-    const perMap={},allBuys=[];
+    let tBuys=0,tProj=0;
+    const allBuys=[];
     ps.forEach(p=>{
-      tProj++;const b=(p.purchases||[]).reduce((s,x)=>s+x.price,0),c2=(p.contributors||[]).reduce((s,x)=>s+x.amount,0);
-      tBuys+=b;tCtrs+=c2;
-      (p.contributors||[]).forEach(x=>{perMap[x.name]=(perMap[x.name]||0)+x.amount});
+      tProj++;const b=(p.purchases||[]).reduce((s,x)=>s+x.price,0);
+      tBuys+=b;
       (p.purchases||[]).forEach(x=>{allBuys.push(x)});
     });
     const itemMap={};allBuys.forEach(x=>{itemMap[x.item]=(itemMap[x.item]||0)+x.price});
     const itemSorted=Object.entries(itemMap).sort((a,b)=>b[1]-a[1]);
     const catMap2={};allBuys.forEach(x=>{const c=x.category||'بدون تصنيف';catMap2[c]=(catMap2[c]||0)+x.price});
     const catSorted2=Object.entries(catMap2).sort((a,b)=>b[1]-a[1]);
-    const pSorted=Object.entries(perMap).sort((a,b)=>b[1]-a[1]);
     c.innerHTML=`
       <div class="stat-g">
         <div class="stat-c"><div class="nm">${tProj}</div><div class="lb">المشاريع</div></div>
         <div class="stat-c g"><div class="nm">${tBuys.toFixed(2)}</div><div class="lb">المشتريات</div></div>
-        <div class="stat-c"><div class="nm">${tCtrs.toFixed(2)}</div><div class="lb">المدفوع</div></div>
       </div>
       <h4 style="font-size:14px;color:var(--p1);margin-bottom:6px;">📊 تحليل حسب الصنف</h4>
       ${itemSorted.length?`<div class="tw"><table><tr><th>الصنف</th><th>الإجمالي</th><th>النسبة</th><th>شريط</th></tr>${
@@ -565,9 +534,7 @@ function applyR(){
       ${catSorted2.length?`<div class="tw"><table><tr><th>الفئة</th><th>الإجمالي</th><th>النسبة</th><th>شريط</th></tr>${
         catSorted2.map(([ca,tot])=>`<tr><td>${esc(ca)}</td><td>${tot.toFixed(2)}</td><td>${(tot/tBuys*100).toFixed(1)}%</td><td><div style="background:#e0e0e0;border-radius:6px;overflow:hidden;width:100px;"><div style="background:linear-gradient(90deg,var(--s1),var(--d));width:${tot/tBuys*100}%;height:14px;border-radius:6px;"></div></div></td></tr>`).join('')}
         <tr style="font-weight:700;background:#e8f5e9;"><td>المجموع</td><td>${tBuys.toFixed(2)}</td><td>100%</td><td></td></tr></table></div>`:'<div style="color:#aaa;font-size:13px;">لا توجد تصنيفات</div>'}
-      <h4 style="font-size:14px;color:var(--p1);margin:10px 0 6px;">👤 حسب المشترك</h4>
-      ${pSorted.length?pSorted.map(([n,a])=>`<div class="cd" style="display:flex;justify-content:space-between;padding:10px 14px;"><span>${esc(n)}</span><strong>${a.toFixed(2)}</strong></div>`).join(''):'<div style="color:#aaa;font-size:13px;">لا يوجد مشتركين</div>'}
-      <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;"><button class="btn btn-sm btn-s" onclick="expRpt()">📥 تصدير</button><button class="btn btn-sm btn-p" onclick="expPdf()">📄 PDF</button></div>`;
+      <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;"><button class="btn btn-sm btn-s" onclick="expRpt()">📥 تصدير</button><button class="btn btn-sm btn-p" onclick="expPdf()">📄 PDF</button><button class="btn btn-sm btn-o" onclick="impRpt()">📤 استيراد</button></div>`;
   }
 }
 function resetR(){document.getElementById('r-project').value='';document.getElementById('r-from').value='';document.getElementById('r-to').value='';applyR()}
@@ -576,9 +543,9 @@ function expRpt(){
   let txt='تقرير المشاريع\n'+'='.repeat(40)+'\n\n';
   const allBuys=[];
   ps.forEach(p=>{
-    const b=(p.purchases||[]).reduce((s,x)=>s+x.price,0),c=(p.contributors||[]).reduce((s,x)=>s+x.amount,0);
-    txt+=`📌 ${p.name} (${p.createdAt||''})\n   المشتريات: ${b.toFixed(2)}\n   المدفوع: ${c.toFixed(2)}\n`;
-    (p.purchases||[]).forEach(x=>{txt+=`   - ${x.item}×${x.qty||1}: ${x.price.toFixed(2)} (${x.category||'—'}) ${x.createdAt||''}\n`;allBuys.push(x)});
+    const b=(p.purchases||[]).reduce((s,x)=>s+x.price,0);
+    txt+=`📌 ${p.name} (${p.createdAt||''})\n   المشتريات: ${b.toFixed(2)}\n`;
+    (p.purchases||[]).forEach(x=>{txt+=`   - ${x.item}×${x.qty||1}: ${x.price.toFixed(2)} (${(x.price/(x.qty||1)).toFixed(2)}/وحدة) ${x.category||'—'} ${x.createdAt||''}\n`;allBuys.push(x)});
     txt+=`   ${'-'.repeat(30)}\n`;
   });
   const tAll=allBuys.reduce((s,x)=>s+x.price,0);
@@ -596,9 +563,48 @@ function expRpt(){
     });
     txt+=`  ${'-'.repeat(20)}\n  الإجمالي: ${tAll.toFixed(2)}\n`;
   }
+  // JSON data block for import
+  const jsonData=allBuys.map(x=>({item:x.item,qty:x.qty,price:x.price,notes:x.notes,category:x.category,createdAt:x.createdAt,dayOfWeek:x.dayOfWeek}));
+  txt+=`\n\n========== JSON DATA ==========\n${JSON.stringify(jsonData)}\n========== END ==========`;
   const blob=new Blob([txt],{type:'text/plain;charset=utf-8'}),url=URL.createObjectURL(blob);
   const a=document.createElement('a');a.href=url;a.download='تقرير_'+gds(new Date())+'.txt';a.click();URL.revokeObjectURL(url);
   toast('تم التصدير','s');
+}
+function impRpt(){
+  const inp=document.createElement('input');inp.type='file';inp.accept='.txt,.json';
+  inp.onchange=async e=>{
+    const file=e.target.files[0];if(!file)return;
+    const text=await file.text();
+    let arr;
+    // Try JSON data block first, then full JSON
+    const m=text.match(/========== JSON DATA ==========\n([\s\S]*?)\n========== END ==========/);
+    if(m)try{arr=JSON.parse(m[1])}catch(e){}
+    if(!arr)try{arr=JSON.parse(text)}catch(e){}
+    if(!arr||!arr.length)return toast('الملف لا يحتوي على بيانات مشتريات صالحة','e');
+    // Add to active projects
+    const active=data.projects.filter(p=>!p.archived);
+    let pid;
+    if(active.length===1)pid=active[0].id;
+    else{
+      const n=prompt('أدخل رقم المشروع المستهدف (1='+active.map((p,i)=>`${i+1}=${p.name}`).join(', ')+'):');
+      const idx=parseInt(n)-1;if(isNaN(idx)||!active[idx])return toast('رقم مشروع غير صحيح','e');
+      pid=active[idx].id;
+    }
+    const p=data.projects.find(x=>x.id===pid);
+    if(!p)return;
+    if(!p.purchases)p.purchases=[];
+    let added=0;
+    arr.forEach(x=>{
+      if(!x.item||!x.price)return;
+      p.purchases.push({id:gid(),item:x.item,qty:x.qty||1,price:x.price,notes:x.notes||'',category:x.category||'',createdAt:x.createdAt||fdt(new Date()),dayOfWeek:x.dayOfWeek||dayNames[new Date().getDay()]});
+      if(!data.savedItems.includes(x.item))data.savedItems.push(x.item);
+      if(x.category&&!data.savedCats.includes(x.category))data.savedCats.push(x.category);
+      added++;
+    });
+    save();renderProjectDetail(pid);renderProjects();renderReports();
+    toast('✅ تم استيراد '+added+' مشتريات','s');
+  };
+  inp.click();
 }
 function expPdf(){
   const c=document.getElementById('r-res');if(!c||!c.innerHTML.trim()||c.querySelector('.empty'))return toast('لا توجد بيانات للتصدير','e');
@@ -682,7 +688,7 @@ function filterArch(){
   if(q)ps=ps.filter(p=>p.name.toLowerCase().includes(q));
   if(!ps.length){c.innerHTML=`<div class="empty"><div class="ei">🗂️</div><p>لا توجد مشاريع في الأرشيف</p></div>`;return}
   c.innerHTML=ps.map(p=>{
-    const b=(p.purchases||[]).reduce((s,x)=>s+x.price,0),ct=(p.contributors||[]).reduce((s,x)=>s+x.amount,0);
+    const b=(p.purchases||[]).reduce((s,x)=>s+x.price,0);
     return `<div class="cd"><div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
       <div><div class="ct">${esc(p.name)}</div><div class="cm">⏰ ${p.createdAt}</div></div>
       <div style="display:flex;gap:8px;">
@@ -695,7 +701,7 @@ function filterArch(){
 function archAll(){
   const active=data.projects.filter(p=>!p.archived);
   if(!active.length)return toast('لا توجد مشاريع نشطة','e');
-  const cut=new Date();cut.setMonth(cut.getMonth()-1);
+  const cut=new Date();cut.setDate(cut.getDate()-7);
   let n=0;
   data.projects.forEach(p=>{if(!p.archived){const d=new Date(p.createdAt?.slice(0,10)||p.createdAt);if(d<cut){p.archived=true;n++}}});
   if(!n)return toast('لا توجد مشاريع قديمة','e');
