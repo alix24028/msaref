@@ -655,9 +655,7 @@ function impRpt(){
     const active=data.projects.filter(p=>!p.archived);
     let pid;
     if(active.length===0){
-      const name=prompt('لا توجد مشاريع. أدخل اسم المشروع الجديد:');
-      if(!name||!name.trim())return;
-      const np={id:gid(),name:name.trim(),createdAt:fdt(new Date()),archived:false,purchases:[],peopleCount:1};
+      const np={id:gid(),name:'مستورد',createdAt:fdt(new Date()),archived:false,purchases:[],peopleCount:1};
       data.projects.push(np);pid=np.id;
       if(currentProject)currentProject=null;
     }else if(active.length===1)pid=active[0].id;
