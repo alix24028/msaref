@@ -563,9 +563,9 @@ function expRpt(){
     });
     txt+=`  ${'-'.repeat(20)}\n  الإجمالي: ${tAll.toFixed(2)}\n`;
   }
-  // JSON data block for import
-  const jsonData=allBuys.map(x=>({item:x.item,qty:x.qty,price:x.price,notes:x.notes,category:x.category,createdAt:x.createdAt,dayOfWeek:x.dayOfWeek}));
-  txt+=`\n\n========== JSON DATA ==========\n${JSON.stringify(jsonData)}\n========== END ==========`;
+  // JSON data block for import (full project structure)
+  const projData=ps.map(p=>({name:p.name,createdAt:p.createdAt,peopleCount:p.peopleCount||1,purchases:(p.purchases||[]).map(x=>({item:x.item,qty:x.qty,price:x.price,notes:x.notes,category:x.category,createdAt:x.createdAt,dayOfWeek:x.dayOfWeek}))}));
+  txt+=`\n\n========== JSON DATA ==========\n${JSON.stringify(projData)}\n========== END ==========`;
   const blob=new Blob([txt],{type:'text/plain;charset=utf-8'}),url=URL.createObjectURL(blob);
   const a=document.createElement('a');a.href=url;a.download='تقرير_'+gds(new Date())+'.txt';a.click();URL.revokeObjectURL(url);
   toast('تم التصدير','s');
@@ -575,13 +575,38 @@ function impRpt(){
   inp.onchange=async e=>{
     const file=e.target.files[0];if(!file)return;
     const text=await file.text();
-    let arr;
+    let jsonData;
     // Try JSON data block first, then full JSON
     const m=text.match(/========== JSON DATA ==========\n([\s\S]*?)\n========== END ==========/);
-    if(m)try{arr=JSON.parse(m[1])}catch(e){}
-    if(!arr)try{arr=JSON.parse(text)}catch(e){}
-    if(!arr||!arr.length)return toast('الملف لا يحتوي على بيانات مشتريات صالحة','e');
-    // Add to active projects
+    if(m)try{jsonData=JSON.parse(m[1])}catch(e){}
+    if(!jsonData)try{jsonData=JSON.parse(text)}catch(e){}
+    if(!jsonData)return toast('الملف لا يحتوي على بيانات صالحة','e');
+    // New format: array of projects [{name,peopleCount,purchases}]
+    if(Array.isArray(jsonData)&&jsonData.length&&jsonData[0].purchases){
+      let added=0;
+      jsonData.forEach(pr=>{
+        if(!pr.purchases||!pr.purchases.length)return;
+        let p=data.projects.find(x=>x.name===pr.name&&!x.archived);
+        if(!p){
+          p={id:gid(),name:pr.name,createdAt:pr.createdAt||fdt(new Date()),archived:false,purchases:[],peopleCount:pr.peopleCount||1};
+          data.projects.push(p);
+        }else{
+          if(pr.peopleCount)p.peopleCount=pr.peopleCount;
+        }
+        pr.purchases.forEach(x=>{
+          if(!x.item||!x.price)return;
+          p.purchases.push({id:gid(),item:x.item,qty:x.qty||1,price:x.price,notes:x.notes||'',category:x.category||'',createdAt:x.createdAt||fdt(new Date()),dayOfWeek:x.dayOfWeek||dayNames[new Date().getDay()]});
+          if(!data.savedItems.includes(x.item))data.savedItems.push(x.item);
+          if(x.category&&!data.savedCats.includes(x.category))data.savedCats.push(x.category);
+          added++;
+        });
+      });
+      save();renderProjects();renderReports();renderArchive();
+      toast('✅ تم استيراد '+added+' مشتريات','s');
+      return;
+    }
+    // Old format: flat array of purchases
+    if(!Array.isArray(jsonData)||!jsonData.length)return toast('الملف لا يحتوي على بيانات مشتريات صالحة','e');
     const active=data.projects.filter(p=>!p.archived);
     let pid;
     if(active.length===1)pid=active[0].id;
@@ -594,7 +619,7 @@ function impRpt(){
     if(!p)return;
     if(!p.purchases)p.purchases=[];
     let added=0;
-    arr.forEach(x=>{
+    jsonData.forEach(x=>{
       if(!x.item||!x.price)return;
       p.purchases.push({id:gid(),item:x.item,qty:x.qty||1,price:x.price,notes:x.notes||'',category:x.category||'',createdAt:x.createdAt||fdt(new Date()),dayOfWeek:x.dayOfWeek||dayNames[new Date().getDay()]});
       if(!data.savedItems.includes(x.item))data.savedItems.push(x.item);
