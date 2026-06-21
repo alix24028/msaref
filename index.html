@@ -309,8 +309,9 @@ function renderProjectDetail(id){
   b.innerHTML=`
     <div style="margin-bottom:12px;">
       <button class="btn btn-sm btn-o" onclick="currentProject=null;renderProjects()">🔙 رجوع للمشاريع</button>
-      <span style="font-size:16px;font-weight:700;color:var(--p1);margin-right:12px;">${esc(p.name)}</span>
-      <button class="btn btn-sm btn-d" style="float:left;" onclick="deleteProject('${p.id}')">🗑️ حذف</button>
+      <span style="font-size:16px;font-weight:700;color:var(--p1);margin-right:12px;" id="p-name-display-${id}">${esc(p.name)}</span>
+      <button class="btn btn-sm btn-o" onclick="renameProject('${id}')" title="تعديل الاسم" style="margin-right:4px;">✏️</button>
+      <button class="btn btn-sm btn-d" style="float:right;" onclick="deleteProject('${p.id}')">🗑️ حذف</button>
     </div>
 
     <div class="p-grid" style="display:flex;flex-direction:column;gap:16px;">
@@ -443,6 +444,15 @@ function setPeople(pid,n){
   const v=parseInt(n)||1;
   p.peopleCount=v<1?1:v;
   save();renderReports();renderProjectDetail(pid);
+}
+function renameProject(id){
+  const p=data.projects.find(x=>x.id===id);
+  if(!p)return;
+  const name=prompt('الاسم الجديد للمشروع:',p.name);
+  if(!name||!name.trim()||name.trim()===p.name)return;
+  const n=name.trim();
+  if(data.projects.find(x=>x.name===n&&x.id!==id))return toast('الاسم موجود مسبقاً','e');
+  p.name=n;save();renderProjectDetail(id);renderProjects();renderReports();
 }
 
 // ===== CALCULATE UNIT PRICE =====
@@ -644,7 +654,13 @@ function impRpt(){
     if(!Array.isArray(jsonData)||!jsonData.length)return toast('الملف لا يحتوي على بيانات مشتريات صالحة','e');
     const active=data.projects.filter(p=>!p.archived);
     let pid;
-    if(active.length===1)pid=active[0].id;
+    if(active.length===0){
+      const name=prompt('لا توجد مشاريع. أدخل اسم المشروع الجديد:');
+      if(!name||!name.trim())return;
+      const np={id:gid(),name:name.trim(),createdAt:fdt(new Date()),archived:false,purchases:[],peopleCount:1};
+      data.projects.push(np);pid=np.id;
+      if(currentProject)currentProject=null;
+    }else if(active.length===1)pid=active[0].id;
     else{
       const n=prompt('أدخل رقم المشروع المستهدف (1='+active.map((p,i)=>`${i+1}=${p.name}`).join(', ')+'):');
       const idx=parseInt(n)-1;if(isNaN(idx)||!active[idx])return toast('رقم مشروع غير صحيح','e');
