@@ -653,9 +653,15 @@ function impRpt(){
 }
 function expPdf(){
   const c=document.getElementById('r-res');if(!c||!c.innerHTML.trim()||c.querySelector('.empty'))return toast('لا توجد بيانات للتصدير','e');
+  const clone=c.cloneNode(true);
+  // Remove last div with buttons (تصدير, PDF, استيراد)
+  const allDivs=clone.querySelectorAll('div');
+  for(let i=allDivs.length-1;i>=0;i--){
+    if(allDivs[i].querySelector('.btn')){allDivs[i].remove();break}
+  }
   const opt={margin:[10,10],filename:'تقرير_'+gds(new Date())+'.pdf',image:{type:'jpeg',quality:0.98},html2canvas:{scale:2,useCORS:true,letterRendering:true},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},pagebreak:{mode:'avoid-all'}};
   toast('جاري إنشاء PDF...','');
-  html2pdf().set(opt).from(c).save().then(()=>toast('✅ تم تصدير PDF','s'));
+  html2pdf().set(opt).from(clone).save().then(()=>toast('✅ تم تصدير PDF','s'));
 }
 
 function onCatChange(pid){
