@@ -580,8 +580,9 @@ function expRpt(){
   // JSON data block for import (full project structure)
   const projData=ps.map(p=>({name:p.name,createdAt:p.createdAt,peopleCount:p.peopleCount||1,purchases:(p.purchases||[]).map(x=>({item:x.item,qty:x.qty,price:x.price,notes:x.notes,category:x.category,store:x.store,createdAt:x.createdAt,dayOfWeek:x.dayOfWeek}))}));
   txt+=`\n\n========== JSON DATA ==========\n${JSON.stringify(projData)}\n========== END ==========`;
+  const projName=ps.length===1?ps[0].name:'عام';
   const blob=new Blob([txt],{type:'text/plain;charset=utf-8'}),url=URL.createObjectURL(blob);
-  const a=document.createElement('a');a.href=url;a.download='تقرير_'+gds(new Date())+'.txt';a.click();URL.revokeObjectURL(url);
+  const a=document.createElement('a');a.href=url;a.download=projName+'_'+gds(new Date())+'.txt';a.click();URL.revokeObjectURL(url);
   toast('تم التصدير','s');
 }
 function impRpt(){
@@ -653,13 +654,16 @@ function impRpt(){
 }
 function expPdf(){
   const c=document.getElementById('r-res');if(!c||!c.innerHTML.trim()||c.querySelector('.empty'))return toast('لا توجد بيانات للتصدير','e');
+  const sel=document.getElementById('r-project')?.value;
+  const pn=sel?data.projects.find(x=>x.id===sel)?.name||'عام':'عام';
+  const projName=pn||'عام';
   const clone=c.cloneNode(true);
   // Remove last div with buttons (تصدير, PDF, استيراد)
   const allDivs=clone.querySelectorAll('div');
   for(let i=allDivs.length-1;i>=0;i--){
     if(allDivs[i].querySelector('.btn')){allDivs[i].remove();break}
   }
-  const opt={margin:[10,10],filename:'تقرير_'+gds(new Date())+'.pdf',image:{type:'jpeg',quality:0.98},html2canvas:{scale:2,useCORS:true,letterRendering:true},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},pagebreak:{mode:'avoid-all'}};
+  const opt={margin:[10,10],filename:projName+'_'+gds(new Date())+'.pdf',image:{type:'jpeg',quality:0.98},html2canvas:{scale:2,useCORS:true,letterRendering:true},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},pagebreak:{mode:'avoid-all'}};
   toast('جاري إنشاء PDF...','');
   html2pdf().set(opt).from(clone).save().then(()=>toast('✅ تم تصدير PDF','s'));
 }
